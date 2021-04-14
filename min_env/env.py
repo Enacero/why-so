@@ -3,7 +3,7 @@ import os
 import time
 from mininet.util import custom
 from mininet.topo import Topo
-from mininet.log import setLogLevel, info, debug
+from mininet.log import  info, debug
 from mininet.net import Mininet
 from mininet.node import (RemoteController, OVSController, CPULimitedHost)
 from mininet.link import TCLink, TCIntf
@@ -217,8 +217,3 @@ def main(cpu=.08, remote=False):
         topo=myTopo, intf=intf, host=host, controller=contr,
         link=TCLink, events_file=EVENTS_FILE)
     net.start()
-
-
-if __name__ == '__main__':
-    setLogLevel('info')
-    main()
