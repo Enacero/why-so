@@ -215,5 +215,5 @@ def main(cpu=.08, remote=False):
     contr = RemoteController if remote else OVSController
     net = Emulation(
         topo=myTopo, intf=intf, host=host, controller=contr,
-        link=TCLink, events_file=EVENTS_FILE)
+        link=TCLink)
     net.start()
