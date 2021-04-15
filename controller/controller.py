@@ -1,5 +1,5 @@
 from ryu.base import app_manager
-from ryu.ofproto import ofproto_v1_5
+from ryu.ofproto import ofproto_v1_4
 from ryu.controller.handler import set_ev_cls, MAIN_DISPATCHER
 from ryu.controller import ofp_event
 from ryu.topology import event as topo_event
@@ -8,7 +8,7 @@ from matplotlib import pyplot as plt
 
 
 class Controller(app_manager.RyuApp):
-    OFP_VERSIONS = [ofproto_v1_5.OFP_VERSION]
+    OFP_VERSIONS = [ofproto_v1_4.OFP_VERSION]
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
