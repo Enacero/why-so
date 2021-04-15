@@ -4,6 +4,7 @@ from ryu.controller.handler import set_ev_cls, MAIN_DISPATCHER
 from ryu.controller import ofp_event
 from ryu.topology import event as topo_event
 import networkx as nx
+from matplotlib import pyplot as plt
 
 
 class Controller(app_manager.RyuApp):
@@ -28,6 +29,9 @@ class Controller(app_manager.RyuApp):
 
     @set_ev_cls(topo_event.EventSwitchEnter)
     def new_switch(self, ev: topo_event.EventSwitchEnter):
-        node = {"id": self.id_counter}
+        self.graph.add_node(ev.switch.dp.id, id=self.id_counter)
         self.id_counter += 1
-        self.graph.add_node(ev.switch.dp.id)
+        if self.id_counter == 3:
+            nx.draw_networkx(self.graph, with_labels=True)
+            plt.show()
+
