@@ -19,7 +19,7 @@ class Controller(SimpleSwitch14):
     def new_switch(self, ev: topo_event.EventSwitchEnter):
         self.graph.add_node(ev.switch.dp.id, id=self.id_counter)
         self.id_counter += 1
-        if self.id_counter == 3:
+        if self.id_counter == 2:
             nx.draw_networkx(self.graph, with_labels=True)
             plt.show()
 
