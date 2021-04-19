@@ -73,9 +73,9 @@ class Controller(app_manager.RyuApp):
         self.add_mpls_pop(dp)
 
     def send_arp_mod(self, dp: Datapath, port):
-        match = dp.ofproto_parser.OFPMatch(eth_type=ether.ETH_TYPE_ARP, eth_dst=port.hw_addr)
+        match = dp.ofproto_parser.OFPMatch(eth_type=ether.ETH_TYPE_ARP, eth_dst='fe:ee:ee:ee:ee:ef')
         actions = [
-            dp.ofproto_parser.OFPActionOutput(dp.ofproto.OFPP_CONTROLLER,dp.ofproto.OFPCML_NO_BUFFER)
+            dp.ofproto_parser.OFPActionOutput(dp.ofproto.OFPP_CONTROLLER, dp.ofproto.OFPCML_NO_BUFFER)
         ]
         instructions = [
             dp.ofproto_parser.OFPInstructionActions(dp.ofproto.OFPIT_APPLY_ACTIONS, actions=actions)
