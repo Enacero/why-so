@@ -134,6 +134,7 @@ class Controller(app_manager.RyuApp):
         eth_pkt = pkt.get_protocol(ethernet.ethernet)
 
         if eth_pkt.ethertype == ether.ETH_TYPE_ARP:
+            print("hello")
             arp_pkt = pkt.get_protocol(arp.arp)
             self.mac_to_dpid[arp_pkt.src_mac] = src_dp.id
             for table_id in [0, 1]:
