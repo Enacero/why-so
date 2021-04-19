@@ -22,7 +22,7 @@ def get_shortest_path(graph: nx.Graph, src: int, dst: int) -> Tuple[int, List[in
     return first, path[:-1]
 
 
-def build_arp(id: int, port) -> bytearray:
+def build_arp(id: int) -> bytearray:
     dst_ip = f"10.0.0.{id}"
     e = ethernet.ethernet('ff:ff:ff:ff:ff:ff', 'fe:ee:ee:ee:ee:ef', ether.ETH_TYPE_ARP)
     a = arp.arp(hwtype=1, proto=ether.ETH_TYPE_IP, hlen=6, plen=4,

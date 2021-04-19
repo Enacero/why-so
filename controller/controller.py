@@ -91,9 +91,8 @@ class Controller(app_manager.RyuApp):
                 buffer_id=dp.ofproto.OFP_NO_BUFFER,
                 in_port=dp.ofproto.OFPP_CONTROLLER,
                 actions=actions,
-                data=utils.build_arp(dst_id, port)
+                data=utils.build_arp(dst_id)
             )
-            print(f"sent for ip 10.0.{dst_id}")
             dp.send_msg(out)
 
     @set_ev_cls(topo_event.EventSwitchEnter)
@@ -144,6 +143,7 @@ class Controller(app_manager.RyuApp):
         eth_pkt = pkt.get_protocol(ethernet.ethernet)
 
         if eth_pkt.ethertype == ether.ETH_TYPE_ARP:
+            import pdb;pdb.set_trace()
             raise Exception("works")
 
         dst: str = eth_pkt.dst
@@ -163,8 +163,12 @@ class Controller(app_manager.RyuApp):
         actions.append(parser.OFPActionOutput(out_port))
 
         # construct packet_out message and send it.
-        out = parser.OFPPacketOut(datapath=src_dp,
-                                  buffer_id=ofproto.OFP_NO_BUFFER,
-                                  in_port=ofproto.OFPP_CONTROLLER, actions=actions,
-                                  data=msg.data)
+        out = parser.OFPPacketOut(
+            datapath=src_dp,
+            buffer_id=ofproto.OFP_NO_BUFFER,
+            in_port=ofproto.OFPP_CONTROLLER, actions=actions,
+            data=msg.data
+        )
         src_dp.send_msg(out)
+
+
