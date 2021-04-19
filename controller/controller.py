@@ -3,7 +3,7 @@ from collections import defaultdict
 from ryu.base import app_manager
 from ryu.ofproto import ofproto_v1_4
 from ryu.controller import ofp_event
-from ryu.lib.packet import packet, ethernet
+from ryu.lib.packet import packet, ethernet, arp
 from ryu.ofproto import ether
 from ryu.controller.controller import Datapath
 from ryu.controller.handler import set_ev_cls, MAIN_DISPATCHER, CONFIG_DISPATCHER
@@ -115,9 +115,9 @@ class Controller(app_manager.RyuApp):
             #     # Wrong
             #     for port in dp.ports.values():
             #         self.mac_to_dpid[port.hw_addr] = dp.id
-            #         match = parser.OFPMatch(eth_dst=port.hw_addr)
-            #         actions = [parser.OFPActionOutput(port.port_no)]
-            #         self.add_flow(dp, 1, match, actions, table_id=table_id)
+                    match = parser.OFPMatch(eth_dst=port.hw_addr)
+                    actions = [parser.OFPActionOutput(port.port_no)]
+                    self.add_flow(dp, 1, match, actions, table_id=table_id)
 
     @set_ev_cls(topo_event.EventLinkAdd)
     def new_link(self, ev: topo_event.EventLinkAdd):
@@ -143,8 +143,12 @@ class Controller(app_manager.RyuApp):
         eth_pkt = pkt.get_protocol(ethernet.ethernet)
 
         if eth_pkt.ethertype == ether.ETH_TYPE_ARP:
-            import pdb;pdb.set_trace()
-            raise Exception("works")
+            arp_pkt = pkt.get_protocol(arp.arp)
+            self.ip_to_dpid[arp_pkt.src_ip] = src_dp.id
+            for table_id in [0, 1]:
+                match = parser.OFPMatch(ipv4_dst=arp_pkt.src_ip)
+                actions = [parser.OFPActionOutput(msg.match["in_port"])]
+                self.add_flow(src_dp, 1, match, actions, table_id=table_id)
 
         dst: str = eth_pkt.dst
 
