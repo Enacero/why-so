@@ -21,7 +21,7 @@ class Controller(app_manager.RyuApp):
         self.graph = nx.Graph()
         self.id_counter = 1
         self.dpid_ports: Dict[int, Dict[int, str]] = defaultdict(dict)
-        self.ip_to_dpid: Dict[str, int] = {}
+        self.mac_to_dpid: Dict[str, int] = {}
         self.dps: Dict[int, Datapath] = {}
 
     @set_ev_cls(ofp_event.EventOFPSwitchFeatures, CONFIG_DISPATCHER)
@@ -135,16 +135,17 @@ class Controller(app_manager.RyuApp):
 
         if eth_pkt.ethertype == ether.ETH_TYPE_ARP:
             arp_pkt = pkt.get_protocol(arp.arp)
-            self.ip_to_dpid[arp_pkt.src_ip] = src_dp.id
+            self.mac_to_dpid[arp_pkt.src_mac] = src_dp.id
             for table_id in [0, 1]:
-                match = parser.OFPMatch(ipv4_dst=arp_pkt.src_ip)
+                match = parser.OFPMatch(eth_dst=arp_pkt.src_mac)
                 actions = [parser.OFPActionOutput(msg.match["in_port"])]
                 self.add_flow(src_dp, 1, match, actions, table_id=table_id)
+                return
 
         dst: str = eth_pkt.dst
 
         src_dpid: int = src_dp.id
-        dst_dpid: int = self.ip_to_dpid[dst]
+        dst_dpid: int = self.mac_to_dpid[dst]
 
         first, path = utils.get_shortest_path(self.graph, src_dpid, dst_dpid)
         nodes = self.graph.nodes
