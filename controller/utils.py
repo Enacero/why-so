@@ -26,5 +26,7 @@ def build_arp(id: int, port) -> bytearray:
     arp_packet = arp.arp(dst_ip=dst_ip, src_mac=port.hw_addr, src_ip="10.0.0.0")
     msg = packet.Packet()
     msg.add_protocol(arp_packet)
+    eth_packet = ethernet.ethernet(dst="ff:ff:ff:ff:ff:ff", ethertype=ether.ETH_TYPE_ARP)
+    msg.add_protocol(eth_packet)
     msg.serialize()
     return msg.data

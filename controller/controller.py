@@ -93,7 +93,7 @@ class Controller(app_manager.RyuApp):
                 actions=actions,
                 data=utils.build_arp(dst_id, port)
             )
-            print(f"sent for ip 10.0.0{dst_id}")
+            print(f"sent for ip 10.0.{dst_id}")
             dp.send_msg(out)
 
     @set_ev_cls(topo_event.EventSwitchEnter)
