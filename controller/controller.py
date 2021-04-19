@@ -10,7 +10,7 @@ from ryu.controller.handler import set_ev_cls, MAIN_DISPATCHER, CONFIG_DISPATCHE
 from ryu.topology import event as topo_event, switches as topo_sw
 import networkx as nx
 
-from . import utils
+import utils
 
 
 class Controller(app_manager.RyuApp):
