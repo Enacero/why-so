@@ -98,7 +98,6 @@ class Controller(app_manager.RyuApp):
     @set_ev_cls(topo_event.EventSwitchEnter)
     def new_switch(self, ev: topo_event.EventSwitchEnter):
         dp: Datapath = ev.switch.dp
-        parser = dp.ofproto_parser
 
         if dp.id not in self.graph.nodes:
             self.graph.add_node(dp.id, id=self.id_counter)
@@ -133,7 +132,7 @@ class Controller(app_manager.RyuApp):
         pkt = packet.Packet(msg.data)
         eth_pkt = pkt.get_protocol(ethernet.ethernet)
 
-        if eth_pkt.ethertype == ether.ETH_TYPE_ARP:
+        if eth_pkt.ethertype == ether.ETH_TYPE_ARP and eth_pkt.dst == 'fe:ee:ee:ee:ee:ef':
             print("hello")
             arp_pkt = pkt.get_protocol(arp.arp)
             self.mac_to_dpid[arp_pkt.src_mac] = src_dp.id
