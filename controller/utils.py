@@ -2,6 +2,7 @@ from typing import List, Tuple
 from ryu.ofproto import ether
 from ryu.controller.controller import Datapath
 from ryu.lib.packet import packet, ethernet, arp
+from ryu.lib import mac
 import networkx as nx
 
 
@@ -26,7 +27,11 @@ def build_arp(id: int, port) -> bytearray:
     arp_packet = arp.arp(dst_ip=dst_ip, src_mac=port.hw_addr, src_ip="10.0.0.0")
     msg = packet.Packet()
     msg.add_protocol(arp_packet)
-    eth_packet = ethernet.ethernet(dst="ff:ff:ff:ff:ff:ff", ethertype=ether.ETH_TYPE_ARP)
+    eth_packet = ethernet.ethernet(
+        dst=mac.haddr_to_bin("ff:ff:ff:ff:ff:ff"),
+        src=mac.haddr_to_bin('00:00:00:00:00:00'),
+        ethertype=ether.ETH_TYPE_ARP,
+    )
     msg.add_protocol(eth_packet)
     msg.serialize()
     return msg.data
