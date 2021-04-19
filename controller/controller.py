@@ -132,17 +132,19 @@ class Controller(app_manager.RyuApp):
         pkt = packet.Packet(msg.data)
         eth_pkt = pkt.get_protocol(ethernet.ethernet)
 
-        if eth_pkt.ethertype == ether.ETH_TYPE_ARP and eth_pkt.dst == 'fe:ee:ee:ee:ee:ef':
+        if eth_pkt.ethertype == ether.ETH_TYPE_ARP:
             print("hello")
             arp_pkt = pkt.get_protocol(arp.arp)
-            self.ip_to_dpid[arp_pkt.src_ip] = src_dp.id
-            for table_id in [0, 1]:
-                match = parser.OFPMatch(ipv4_dst=arp_pkt.src_ip)
-                actions = [parser.OFPActionOutput(msg.match["in_port"])]
-                self.add_flow(src_dp, 1, match, actions, table_id=table_id)
-                return
+            if eth_pkt.dst == 'fe:ee:ee:ee:ee:ef':
+                self.ip_to_dpid[arp_pkt.src_ip] = src_dp.id
+                for table_id in [0, 1]:
+                    match = parser.OFPMatch(ipv4_dst=arp_pkt.src_ip)
+                    actions = [parser.OFPActionOutput(msg.match["in_port"])]
+                    self.add_flow(src_dp, 1, match, actions, table_id=table_id)
+                    return
 
-        dst_ip: str = pkt.get_protocol(ipv4.ipv4).dst
+            dst_ip: str = arp_pkt.dst_ip
+
         src_dpid: int = src_dp.id
         dst_dpid: int = self.ip_to_dpid[dst_ip]
 
