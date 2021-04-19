@@ -1,6 +1,6 @@
 from typing import Dict, List, Tuple
 from collections import defaultdict
-from ryu.app.simple_switch_14 import SimpleSwitch14
+from ryu.base import app_manager
 from ryu.ofproto import ofproto_v1_4
 from ryu.controller import ofp_event
 from ryu.lib.packet import packet, ethernet
@@ -30,7 +30,7 @@ def get_shortest_path(graph: nx.Graph, src: int, dst: int) -> Tuple[int, List[in
     return first, path[:-1]
 
 
-class Controller(SimpleSwitch14):
+class Controller(app_manager.RyuApp):
     OFP_VERSIONS = [ofproto_v1_4.OFP_VERSION]
 
     def __init__(self, *args, **kwargs):
@@ -88,6 +88,7 @@ class Controller(SimpleSwitch14):
         match = parser.OFPMatch(mpls_label=self.graph.nodes[port.dpid])
         actions = [parser.OFPActionOutput(port.port_no)]
         self.add_flow(dp, 10, match, actions, table_id=1)
+        self.add_mpls_pop(dp)
 
     @set_ev_cls(topo_event.EventSwitchEnter)
     def new_switch(self, ev: topo_event.EventSwitchEnter):
@@ -99,6 +100,7 @@ class Controller(SimpleSwitch14):
             self.dps[dp.id] = dp
             self.id_counter += 1
 
+            print(dp.ports.values())
             for table_id in [0, 1]:
                 for port in dp.ports.values():
                     self.mac_to_dpid[port.hw_addr] = dp.id
