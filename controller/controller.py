@@ -3,7 +3,7 @@ from collections import defaultdict
 from ryu.base import app_manager
 from ryu.ofproto import ofproto_v1_4
 from ryu.controller import ofp_event
-from ryu.lib.packet import packet, ethernet, arp
+from ryu.lib.packet import packet, ethernet, arp, ipv4
 from ryu.ofproto import ether
 from ryu.controller.controller import Datapath
 from ryu.controller.handler import set_ev_cls, MAIN_DISPATCHER, CONFIG_DISPATCHER
@@ -21,7 +21,7 @@ class Controller(app_manager.RyuApp):
         self.graph = nx.Graph()
         self.id_counter = 1
         self.dpid_ports: Dict[int, Dict[int, str]] = defaultdict(dict)
-        self.mac_to_dpid: Dict[str, int] = {}
+        self.ip_to_dpid: Dict[str, int] = {}
         self.dps: Dict[int, Datapath] = {}
 
     @set_ev_cls(ofp_event.EventOFPSwitchFeatures, CONFIG_DISPATCHER)
@@ -72,7 +72,7 @@ class Controller(app_manager.RyuApp):
         self.add_flow(dp, 10, match, actions, table_id=1)
         self.add_mpls_pop(dp)
 
-    def send_arp_mod(self, dp: Datapath, port):
+    def send_arp_mod(self, dp: Datapath):
         match = dp.ofproto_parser.OFPMatch(eth_type=ether.ETH_TYPE_ARP, eth_dst='fe:ee:ee:ee:ee:ef')
         actions = [
             dp.ofproto_parser.OFPActionOutput(dp.ofproto.OFPP_CONTROLLER, dp.ofproto.OFPCML_NO_BUFFER)
@@ -106,7 +106,7 @@ class Controller(app_manager.RyuApp):
 
             for port in dp.ports.values():
                 if port.state == 4:
-                    self.send_arp_mod(dp, port)
+                    self.send_arp_mod(dp)
                     self.send_arp(dp, port)
 
     @set_ev_cls(topo_event.EventLinkAdd)
@@ -135,17 +135,16 @@ class Controller(app_manager.RyuApp):
         if eth_pkt.ethertype == ether.ETH_TYPE_ARP and eth_pkt.dst == 'fe:ee:ee:ee:ee:ef':
             print("hello")
             arp_pkt = pkt.get_protocol(arp.arp)
-            self.mac_to_dpid[arp_pkt.src_mac] = src_dp.id
+            self.ip_to_dpid[arp_pkt.src_ip] = src_dp.id
             for table_id in [0, 1]:
-                match = parser.OFPMatch(eth_dst=arp_pkt.src_mac)
+                match = parser.OFPMatch(ipv4_dst=arp_pkt.src_ip)
                 actions = [parser.OFPActionOutput(msg.match["in_port"])]
                 self.add_flow(src_dp, 1, match, actions, table_id=table_id)
                 return
 
-        dst: str = eth_pkt.dst
-
+        dst_ip: str = pkt.get_protocol(ipv4.ipv4).dst
         src_dpid: int = src_dp.id
-        dst_dpid: int = self.mac_to_dpid[dst]
+        dst_dpid: int = self.ip_to_dpid[dst_ip]
 
         first, path = utils.get_shortest_path(self.graph, src_dpid, dst_dpid)
         nodes = self.graph.nodes
