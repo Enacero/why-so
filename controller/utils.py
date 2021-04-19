@@ -21,7 +21,8 @@ def get_shortest_path(graph: nx.Graph, src: int, dst: int) -> Tuple[int, List[in
     return first, path[:-1]
 
 
-def build_arp(dst_ip: str) -> bytearray:
+def build_arp(id: int) -> bytearray:
+    dst_ip = f"10.0.0.{id}"
     arp_packet = arp.arp(dst_ip=dst_ip)
     msg = packet.Packet()
     msg.add_protocol(arp_packet)
