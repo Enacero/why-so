@@ -1,4 +1,4 @@
-from typing import Dict, List, Tuple
+from typing import Dict
 from collections import defaultdict
 from ryu.base import app_manager
 from ryu.ofproto import ofproto_v1_4
@@ -10,24 +10,7 @@ from ryu.controller.handler import set_ev_cls, MAIN_DISPATCHER, CONFIG_DISPATCHE
 from ryu.topology import event as topo_event, switches as topo_sw
 import networkx as nx
 
-# TODO:
-# Test remove mpls labels on switch
-
-
-def construct_mpls(dp: Datapath, mpls_id: int) -> List:
-    f = dp.ofproto_parser.OFPMatchField.make(
-        dp.ofproto.OXM_OF_MPLS_LABEL, mpls_id)
-
-    actions = [dp.ofproto_parser.OFPActionPushMpls(ether.ETH_TYPE_MPLS),
-               dp.ofproto_parser.OFPActionSetField(f)]
-    return actions
-
-
-def get_shortest_path(graph: nx.Graph, src: int, dst: int) -> Tuple[int, List[int]]:
-    path = nx.shortest_path(graph, src, dst, weight="weight")[1:]
-    first = path[0]
-    path.reverse()
-    return first, path[:-1]
+from . import utils
 
 
 class Controller(app_manager.RyuApp):
@@ -38,7 +21,7 @@ class Controller(app_manager.RyuApp):
         self.graph = nx.Graph()
         self.id_counter = 1
         self.dpid_ports: Dict[int, Dict[int, str]] = defaultdict(dict)
-        self.mac_to_dpid: Dict[str, int] = {}
+        self.ip_to_dpid: Dict[str, int] = {}
         self.dps: Dict[int, Datapath] = {}
 
     @set_ev_cls(ofp_event.EventOFPSwitchFeatures, CONFIG_DISPATCHER)
@@ -69,8 +52,7 @@ class Controller(app_manager.RyuApp):
 
         dp.send_msg(mod)
 
-
-    def add_flow(self, datapath, priority, match, actions, table_id=0):
+    def add_flow(self, datapath: Datapath, priority, match, actions, table_id=0):
         ofproto = datapath.ofproto
         parser = datapath.ofproto_parser
 
@@ -90,6 +72,29 @@ class Controller(app_manager.RyuApp):
         self.add_flow(dp, 10, match, actions, table_id=1)
         self.add_mpls_pop(dp)
 
+    def send_arp_mod(self, dp: Datapath, port):
+        match = dp.ofproto_parser.OFPMatch(eth_type=ether.ETH_TYPE_ARP, eth_dst=port.hw_addr)
+        actions = [
+            dp.ofproto_parser.OFPActionOutput(dp.ofproto.OFPP_CONTROLLER,dp.ofproto.OFPCML_NO_BUFFER)
+        ]
+        instructions = [
+            dp.ofproto_parser.OFPInstructionActions(dp.ofproto.OFPIT_APPLY_ACTIONS, actions=actions)
+        ]
+        mod = dp.ofproto_parser.OFPFlowMod(datapath=dp, match=match, instructions=instructions)
+        dp.send_msg(mod)
+
+    def send_arp(self, dp: Datapath, port):
+        for dst_ip in range(1, 20):
+            actions = [dp.ofproto_parser.OFPActionOutput(port.porn_no)]
+            out = dp.ofproto_parser.OFPPacketOut(
+                datapath=dp,
+                buffer_id=dp.ofproto.OFP_NO_BUFFER,
+                in_port=dp.ofproto.OFPP_CONTROLLER,
+                actions=actions,
+                data=utils.build_arp(dst_ip)
+            )
+            dp.send_msg(out)
+
     @set_ev_cls(topo_event.EventSwitchEnter)
     def new_switch(self, ev: topo_event.EventSwitchEnter):
         dp: Datapath = ev.switch.dp
@@ -100,13 +105,19 @@ class Controller(app_manager.RyuApp):
             self.dps[dp.id] = dp
             self.id_counter += 1
 
-            print(dp.ports.values())
-            for table_id in [0, 1]:
-                for port in dp.ports.values():
-                    self.mac_to_dpid[port.hw_addr] = dp.id
-                    match = parser.OFPMatch(eth_dst=port.hw_addr)
-                    actions = [parser.OFPActionOutput(port.port_no)]
-                    self.add_flow(dp, 1, match, actions, table_id=table_id)
+            for port in dp.ports.values():
+                if port.state == 4:
+                    self.send_arp_mod(dp, port)
+                    self.send_arp(dp, port)
+
+            # for table_id in [0, 1]:
+            #
+            #     # Wrong
+            #     for port in dp.ports.values():
+            #         self.mac_to_dpid[port.hw_addr] = dp.id
+            #         match = parser.OFPMatch(eth_dst=port.hw_addr)
+            #         actions = [parser.OFPActionOutput(port.port_no)]
+            #         self.add_flow(dp, 1, match, actions, table_id=table_id)
 
     @set_ev_cls(topo_event.EventLinkAdd)
     def new_link(self, ev: topo_event.EventLinkAdd):
@@ -130,18 +141,22 @@ class Controller(app_manager.RyuApp):
 
         pkt = packet.Packet(msg.data)
         eth_pkt = pkt.get_protocol(ethernet.ethernet)
+
+        if eth_pkt.ethertype == ether.ETH_TYPE_ARP:
+            raise Exception("works")
+
         dst: str = eth_pkt.dst
 
         src_dpid: int = src_dp.id
-        dst_dpid: int = self.mac_to_dpid[dst]
+        dst_dpid: int = self.ip_to_dpid[dst]
 
-        first, path = get_shortest_path(self.graph, src_dpid, dst_dpid)
+        first, path = utils.get_shortest_path(self.graph, src_dpid, dst_dpid)
         nodes = self.graph.nodes
 
         actions = []
 
         for point in path:
-            actions.extend(construct_mpls(src_dp, nodes[point]["id"]))
+            actions.extend(utils.construct_mpls(src_dp, nodes[point]["id"]))
 
         out_port = self.dpid_ports[src_dpid][first]
         actions.append(parser.OFPActionOutput(out_port))
