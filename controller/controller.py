@@ -132,6 +132,9 @@ class Controller(app_manager.RyuApp):
         pkt = packet.Packet(msg.data)
         eth_pkt = pkt.get_protocol(ethernet.ethernet)
 
+        if eth_pkt.ethertype == ether.ETH_TYPE_LLDP:
+            return
+
         if eth_pkt.ethertype == ether.ETH_TYPE_ARP:
             print("hello")
             arp_pkt = pkt.get_protocol(arp.arp)
