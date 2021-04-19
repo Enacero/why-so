@@ -24,12 +24,12 @@ def get_shortest_path(graph: nx.Graph, src: int, dst: int) -> Tuple[int, List[in
 
 def build_arp(id: int, port) -> bytearray:
     dst_ip = f"10.0.0.{id}"
-    arp_packet = arp.arp(dst_ip=dst_ip, src_mac=port.hw_addr, src_ip="10.0.0.0")
+    arp_packet = arp.arp(dst_ip=dst_ip, src_mac=port.hw_addr, src_ip="10.0.0.0", proto=ether.ETH_TYPE_IP)
     msg = packet.Packet()
     msg.add_protocol(arp_packet)
     eth_packet = ethernet.ethernet(
-        dst=mac.haddr_to_bin("ff:ff:ff:ff:ff:ff"),
-        src=mac.haddr_to_bin('00:00:00:00:00:00'),
+        dst="ff:ff:ff:ff:ff:ff",
+        src='00:00:00:00:00:00',
         ethertype=ether.ETH_TYPE_ARP,
     )
     msg.add_protocol(eth_packet)
