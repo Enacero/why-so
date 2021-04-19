@@ -91,8 +91,9 @@ class Controller(app_manager.RyuApp):
                 buffer_id=dp.ofproto.OFP_NO_BUFFER,
                 in_port=dp.ofproto.OFPP_CONTROLLER,
                 actions=actions,
-                data=utils.build_arp(dst_id)
+                data=utils.build_arp(dst_id, port)
             )
+            print(f"sent for ip 10.0.0{dst_id}")
             dp.send_msg(out)
 
     @set_ev_cls(topo_event.EventSwitchEnter)
