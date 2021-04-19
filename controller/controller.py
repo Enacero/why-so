@@ -85,7 +85,7 @@ class Controller(app_manager.RyuApp):
 
     def send_arp(self, dp: Datapath, port):
         for dst_ip in range(1, 20):
-            actions = [dp.ofproto_parser.OFPActionOutput(port.porn_no)]
+            actions = [dp.ofproto_parser.OFPActionOutput(port.port_no)]
             out = dp.ofproto_parser.OFPPacketOut(
                 datapath=dp,
                 buffer_id=dp.ofproto.OFP_NO_BUFFER,
