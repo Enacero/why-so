@@ -110,15 +110,6 @@ class Controller(app_manager.RyuApp):
                     self.send_arp_mod(dp, port)
                     self.send_arp(dp, port)
 
-            # for table_id in [0, 1]:
-            #
-            #     # Wrong
-            #     for port in dp.ports.values():
-            #         self.mac_to_dpid[port.hw_addr] = dp.id
-                    match = parser.OFPMatch(eth_dst=port.hw_addr)
-                    actions = [parser.OFPActionOutput(port.port_no)]
-                    self.add_flow(dp, 1, match, actions, table_id=table_id)
-
     @set_ev_cls(topo_event.EventLinkAdd)
     def new_link(self, ev: topo_event.EventLinkAdd):
         src: topo_sw.Port = ev.link.src
